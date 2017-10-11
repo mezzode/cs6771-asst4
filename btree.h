@@ -24,7 +24,9 @@ template <typename T>
 class btree {
  public:
   /** Hmm, need some iterator typedefs here... friends? **/
- 
+  using btree_iterator = BTreeIterator<T*>;
+  using const_btree_iterator = BTreeIterator<const T*>;
+
   /**
    * Constructs an empty btree.  Note that
    * the elements stored in your btree must
@@ -105,6 +107,10 @@ class btree {
    * -- crbegin() 
    * -- crend() 
    */
+  btree_iterator begin();
+  btree_iterator end();
+  const_btree_iterator cbegin();
+
   
   /**
     * Returns an iterator to the matching element, or whatever 
@@ -172,6 +178,54 @@ class btree {
   
 private:
   // The details of your implementation go here
+  using std::shared_ptr;
+
+  size_t maxNodeElems_;
+
+  std::list<T> elems;
+  std::vector<unique_ptr<btree>> children;
+
+  btree(size_t maxNodeElems = 40): maxNodeElems_{maxNodeElems} {
+
+  }
+
+  std::pair<iterator, bool> insert(const T& elem) {
+    iterator it = find(elem);
+    if (it != end()) {
+      // already in btree so do nothing
+      return std::make_pair(it, false);
+    }
+
+    if (elems.size() < maxNodeElems_) {
+      // node not saturated so add to it
+      for (auto it = elems.begin(); it != elems.end(); ++it) {
+        if (elem < *it) {
+          break;
+        }
+      }
+      elems.insert(it, elem); // insert elem before iterator
+      // TODO: return iterator and true
+    } else {
+      // node saturated to add to child
+      // loop through elems to find which child to add to
+      int childx = 0;
+      for (auto it = elems.begin(); it != elems.end(); ++it, ++childx) {
+        if (elem < *it) {
+          // adding to the child before this elem (and after the prev elem)
+          break;
+        }
+      }
+      if (childx >= children.size()) {
+        // extend to fit
+        children.resize(childx+1);
+      }
+      if (children[childx] == nullptr) {
+        // create actual child if doesnt exist yet
+        children[childx] = std::make_unique<btree>(maxNodeElems_);
+      }
+      return children[childx].insert(elem);
+    }
+  }
 };
 
 #endif

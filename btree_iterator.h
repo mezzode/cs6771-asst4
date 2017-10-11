@@ -11,4 +11,12 @@
 // iterator related interface stuff here; would be nice if you called your
 // iterator class btree_iterator (and possibly const_btree_iterator)
 
+template<typename PointerType>
+class BTreeIterator {
+    public:
+        BTreeIterator() {
+            
+        }
+};
+
 #endif
