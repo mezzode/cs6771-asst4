@@ -93,7 +93,31 @@ class btree {
          * @param tree a const reference to a B-Tree object
          * @return a reference to os
          */
-        friend std::ostream& operator<<<T>(std::ostream& os, const btree<T>& tree);
+        friend std::ostream& operator<<<T>(std::ostream& os, const btree<T>& tree) {
+            std::queue<btree<T>> queue = {tree};
+            while (!queue.empty()) {
+                // add nodes' children to queue
+                for (const btree<T>& child : queue.front().children) {
+                    if (child != nullptr) {
+                        queue.push(child);
+                    }
+                }
+
+                // print the nodes' contents
+                const std::vector<T> elems = queue.front().elems;
+                for (size_t i = 0; i < elems.size(); ++i) {
+                    os << elems.at(i); // print elem
+                    if (i < elems.size() - 1 || queue.size() > 1) {
+                        // only print space if something else afterward
+                        // i.e. if i is not the last elem or there are more things on the queue
+                        // (but what if the other children are empty? but shouldn't be possible for them to be empty?)
+                        os << ' ';
+                    }
+                }
+                queue.pop();
+            }
+            return os;
+        }
 
         /**
          * The following can go here
@@ -192,9 +216,9 @@ class btree {
             if (elems.size() < maxNodeElems_) {
                 // node not saturated so add to it
                 for (auto it = elems.begin(); it != elems.end(); ++it) {
-                if (elem < *it) {
-                    break;
-                }
+                    if (elem < *it) {
+                        break;
+                    }
                 }
                 elems.insert(it, elem);  // insert elem before iterator
                 // TODO: return iterator and true
