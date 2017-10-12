@@ -25,7 +25,8 @@ class btree {
     public:
         /** Hmm, need some iterator typedefs here... friends? **/
         using btree_iterator = BTreeIterator<T*>;
-        using const_btree_iterator = BTreeIterator<const T*>;
+        using const_btree_iterator = BTreeIterator<const T*>; // does this actually work?
+        friend class BTreeIterator<T>; // or <T*>?
 
         /**
          * Constructs an empty btree.  Note that
@@ -148,7 +149,17 @@ class btree {
          * @return an iterator to the matching element, or whatever the
          *         non-const end() returns if no such match was ever found.
          */
-        iterator find(const T& elem);
+        iterator find(const T& elem) {
+            std::stack<std::weak_ptr<btree>> levels = {std::make_shared<btree>()}; // not sure if this will work
+            for (size_t i = 0; i < elems.size(); ++i) {
+                if (elems.at(i) == elem) {
+                    // found
+
+                    // TODO: construct and return iterator
+
+                }
+            }
+        }
 
         /**
          * Identical in functionality to the non-const version of find,
@@ -202,7 +213,7 @@ class btree {
         // The details of your implementation go here
         size_t maxNodeElems_;
         std::list<T> elems;
-        std::vector<std::unique_ptr<btree>> children;
+        std::vector<std::unique_ptr<btree>> children; // might have to be shared_ptrs...
 
         btree(size_t maxNodeElems = 40) : maxNodeElems_{maxNodeElems} {}
 
