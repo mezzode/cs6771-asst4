@@ -210,12 +210,51 @@ class btree {
         ~btree();
 
     private:
-        // The details of your implementation go here
-        size_t maxNodeElems_;
-        std::list<T> elems;
-        std::vector<std::unique_ptr<btree>> children; // might have to be shared_ptrs...
-
         btree(size_t maxNodeElems = 40) : maxNodeElems_{maxNodeElems} {}
+
+        struct Node {
+            std::vector<T> elems;
+            std::vector<std::shared_ptr<btree>> children;
+            std::weak_ptr<btree> parent;
+
+            std::pair<iterator, bool> insert(const T& elem) {
+                if (elems.size() < maxNodeElems_) {
+                    // node not saturated so add to it
+                    for (auto it = elems.begin(); it != elems.end(); ++it) {
+                        if (elem < *it) {
+                            break;
+                        }
+                    }
+                    elems.insert(it, elem);  // insert elem before iterator
+                    // TODO: return iterator and true
+                } else {
+                    // node saturated to add to child
+                    // loop through elems to find which child to add to
+                    int childx = 0;
+                    for (auto it = elems.begin(); it != elems.end(); ++it, ++childx) {
+                        if (elem < *it) {
+                            // adding to the child before this elem (and after the prev elem)
+                            break;
+                        }
+                    }
+                    if (childx >= children.size()) {
+                        // extend to fit
+                        children.resize(childx + 1);
+                    }
+                    if (children[childx] == nullptr) {
+                        // create actual child if doesnt exist yet
+                        children[childx] = std::make_unique<btree>(maxNodeElems_);
+                    }
+                    return children[childx].insert(elem);
+
+                    // if storing parents in stack, need to pass in an iterator and edit it while we recurse deeper
+                    // would still need to do similar for indices regardless of in stack or in node...
+                    // maybe dont use recursion, just a loop
+                }
+            }
+        }
+
+        std::shared_ptr<btree> head;
 
         std::pair<iterator, bool> insert(const T& elem) {
             iterator it = find(elem);
@@ -224,34 +263,41 @@ class btree {
                 return std::make_pair(it, false);
             }
 
-            if (elems.size() < maxNodeElems_) {
-                // node not saturated so add to it
-                for (auto it = elems.begin(); it != elems.end(); ++it) {
+            std::stack<std::shared_ptr<btree>> levels = {head};
+            std::stack<size_t> indices;
+
+            while (true) {
+                // find index
+                auto& elems = levels.top().elems;
+                int i = 0;
+                for (auto it = elems.begin(); it != elems.end(); ++it, ++i) {
                     if (elem < *it) {
                         break;
                     }
                 }
-                elems.insert(it, elem);  // insert elem before iterator
-                // TODO: return iterator and true
-            } else {
-                // node saturated to add to child
-                // loop through elems to find which child to add to
-                int childx = 0;
-                for (auto it = elems.begin(); it != elems.end(); ++it, ++childx) {
-                    if (elem < *it) {
-                        // adding to the child before this elem (and after the prev elem)
-                        break;
-                    }
+                indices.push(i);
+
+                // if node not saturated add to it and return iterator
+                if (elems.size() < maxNodeElems_) {
+                    elems.insert(it, elem);
+                    btree_iterator insertedIt;
+                    insertedIt.levels = levels;
+                    insertedIt.indices = indices;
+                    return std::make_pair(insertedIt, true);
                 }
-                if (childx >= children.size()) {
+
+                // otherwise add to child
+                auto& children = levels.top().children;
+                if (i >= children.size()) {
                     // extend to fit
-                    children.resize(childx + 1);
+                    children.resize(i + 1);
                 }
-                if (children[childx] == nullptr) {
+                if (children[i] == nullptr) {
                     // create actual child if doesnt exist yet
-                    children[childx] = std::make_unique<btree>(maxNodeElems_);
+                    children[i] = std::make_shared<btree>(maxNodeElems_);
                 }
-                return children[childx].insert(elem);
+                // push child onto levels
+                levels.push(children[i]);
             }
         }
 };
