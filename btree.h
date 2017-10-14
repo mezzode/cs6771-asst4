@@ -230,7 +230,7 @@ class btree {
         struct Node {
             std::vector<T> elems;
             std::vector<std::shared_ptr<btree>> children;
-            std::weak_ptr<btree> parent;
+            std::weak_ptr<btree> parent; // or raw poiner?
 
             std::pair<iterator, bool> insert(const T& elem) {
                 if (elems.size() < maxNodeElems_) {
@@ -278,7 +278,7 @@ class btree {
                 return std::make_pair(it, false);
             }
 
-            std::stack<std::shared_ptr<btree>> levels = {head};
+            std::shared_ptr<btree> node = head; // or raw?
             std::stack<size_t> indices;
 
             while (true) {
@@ -295,24 +295,22 @@ class btree {
                 // if node not saturated add to it and return iterator
                 if (elems.size() < maxNodeElems_) {
                     elems.insert(it, elem);
-                    btree_iterator insertedIt;
-                    insertedIt.levels = levels;
+                    iterator insertedIt;
+                    insertedIt.node = node;
                     insertedIt.indices = indices;
                     return std::make_pair(insertedIt, true);
                 }
 
                 // otherwise add to child
-                auto& children = levels.top().children;
-                if (i >= children.size()) {
+                if (i >= node->children.size()) {
                     // extend to fit
-                    children.resize(i + 1);
+                    node->children.resize(i + 1);
                 }
-                if (children[i] == nullptr) {
+                if (node->children[i] == nullptr) {
                     // create actual child if doesnt exist yet
-                    children[i] = std::make_shared<btree>(maxNodeElems_);
+                    node->children[i] = std::make_shared<btree>(maxNodeElems_);
                 }
-                // push child onto levels
-                levels.push(children[i]);
+                node = node->children[i];
             }
         }
 };

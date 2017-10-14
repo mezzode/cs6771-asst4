@@ -23,7 +23,6 @@ class BTreeIterator {
         using reference = T&;
 
         reference operator*() const {
-            std::shared_ptr<btree> node = levels.top().lock();
             return node->elems[indices.top()]; // how return reference
         }
         
@@ -70,7 +69,7 @@ class BTreeIterator {
         }
 
         bool operator==(const BTreeIterator& other) const {
-            return levels == other.levels && indices == other.indices;
+            return node == other.node && indices == other.indices;
         }
 
         bool operator!=(const BTreeIterator& other) const {
@@ -82,8 +81,8 @@ class BTreeIterator {
         }
 
     private:
-        std::stack<std::weak_ptr<btree>> levels; // weak or shared?
         std::stack<size_t> indices;
+        btree<T>::Node* node;
 
         friend class btree<T>; // ? so can edit the iterator for find()
 };
