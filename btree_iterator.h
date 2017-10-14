@@ -17,7 +17,7 @@ template<typename T>
 class BTreeIterator {
     public:
         using difference_type = ptrdiff_t;
-        using iterator_category = std::forward_iterator_tag; // ?
+        using iterator_category = std::bidirectional_iterator_tag;
         using value_type = T;
         using pointer = T*;
         using reference = T&;
@@ -31,6 +31,7 @@ class BTreeIterator {
             return &(operator*());
         }
 
+        // prefix inc
         BTreeIterator& operator++() {
             std::shared_ptr<btree> node = levels.top().lock();
             if (node->children.size() > indices.top() && // double check this logic
@@ -47,6 +48,25 @@ class BTreeIterator {
                     ++indices.top();
                 }
             }
+        }
+
+        // postfix inc
+        BTreeIterator operator++() {
+            BTreeIterator tmp = *this;
+            ++*this;
+            return tmp;
+        }
+
+        // prefix dec
+        BTreeIterator& operator--() {
+            // TODO
+        }
+
+        // postfix dec
+        BTreeIterator operator--() {
+            BTreeIterator tmp = *this;
+            --*this;
+            return tmp;
         }
 
         bool operator==(const BTreeIterator& other) const {

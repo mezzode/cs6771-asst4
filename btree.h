@@ -24,8 +24,10 @@ template <typename T>
 class btree {
     public:
         /** Hmm, need some iterator typedefs here... friends? **/
-        using btree_iterator = BTreeIterator<T*>;
-        using const_btree_iterator = BTreeIterator<const T*>; // does this actually work?
+        using iterator = BTreeIterator<T*>;
+        using const_iterator = BTreeIterator<const T*>; // does this actually work?
+        using reverse_iterator = decltype(std::make_reverse_iterator(begin()));
+        using const_reverse_iterator = decltype(std::make_reverse_iterator(cbegin()));
         friend class BTreeIterator<T>; // or <T*>?
 
         /**
@@ -131,9 +133,22 @@ class btree {
          * -- crbegin()
          * -- crend()
          */
-        btree_iterator begin();
-        btree_iterator end();
-        const_btree_iterator cbegin();
+        iterator begin();
+        iterator end();
+        reverse_iterator rbegin() {
+            return std::make_reverse_iterator(end());
+        }
+        reverse_iterator rend() {
+            return std::make_reverse_iterator(begin());
+        }
+        const_iterator cbegin();
+        const_iterator cend();
+        const_reverse_iterator crbegin() {
+            return std::make_reverse_iterator(cend());
+        }
+        const_reverse_iterator crend() {
+            return std::make_reverse_iterator(cbegin());
+        }
 
         /**
          * Returns an iterator to the matching element, or whatever
