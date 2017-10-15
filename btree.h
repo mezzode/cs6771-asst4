@@ -165,15 +165,28 @@ class btree {
          *         non-const end() returns if no such match was ever found.
          */
         iterator find(const T& elem) {
-            std::stack<std::weak_ptr<btree>> levels = {std::make_shared<btree>()}; // not sure if this will work
-            for (size_t i = 0; i < elems.size(); ++i) {
-                if (elems.at(i) == elem) {
+            std::unique_ptr<btree>& node = head; // not sure if need to make it raw ptr instead
+            std::stack<size_t> indices;
+            size_t i = 0;
+            while (node != nullptr) {
+                if (elem < node->elems.at(i) || i == node->elems.size()) {
+                    // look in that child
+                    if (i >= node->children.size()) {
+                        // no child
+                        return end();
+                    }
+                    node = node->children.at(i);
+                    indices.push(i);
+                    i = 0;
+                } else if (node->elems.at(i) == elem) {
                     // found
-
-                    // TODO: construct and return iterator
-
+                    indices.push(i);
+                    return iterator(node, indices);    
+                } else {
+                    ++i;
                 }
             }
+            return end();
         }
 
         /**
@@ -229,47 +242,11 @@ class btree {
 
         struct Node {
             std::vector<T> elems;
-            std::vector<std::unique_ptr<btree>> children;
+            std::vector<std::unique_ptr<Node>> children;
             btree* parent;
-
-            std::pair<iterator, bool> insert(const T& elem) {
-                if (elems.size() < maxNodeElems_) {
-                    // node not saturated so add to it
-                    for (auto it = elems.begin(); it != elems.end(); ++it) {
-                        if (elem < *it) {
-                            break;
-                        }
-                    }
-                    elems.insert(it, elem);  // insert elem before iterator
-                    // TODO: return iterator and true
-                } else {
-                    // node saturated to add to child
-                    // loop through elems to find which child to add to
-                    int childx = 0;
-                    for (auto it = elems.begin(); it != elems.end(); ++it, ++childx) {
-                        if (elem < *it) {
-                            // adding to the child before this elem (and after the prev elem)
-                            break;
-                        }
-                    }
-                    if (childx >= children.size()) {
-                        // extend to fit
-                        children.resize(childx + 1);
-                    }
-                    if (children[childx] == nullptr) {
-                        // create actual child if doesnt exist yet
-                        children[childx] = std::make_unique<btree>(maxNodeElems_);
-                    }
-                    return children[childx].insert(elem);
-
-                    // if storing parents in stack, need to pass in an iterator and edit it while we recurse deeper
-                    // would still need to do similar for indices regardless of in stack or in node...
-                    // maybe dont use recursion, just a loop
-                }
-            }
         }
 
-        std::shared_ptr<btree> head;
+        std::unique_ptr<Node> head;
 
         std::pair<iterator, bool> insert(const T& elem) {
             iterator it = find(elem);
@@ -278,27 +255,33 @@ class btree {
                 return std::make_pair(it, false);
             }
 
-            std::shared_ptr<btree> node = head; // or raw?
+            std::unique_ptr<btree>& node = head; // not sure if need to make it raw ptr instead
             std::stack<size_t> indices;
 
             while (true) {
                 // find index
-                auto& elems = levels.top().elems;
                 int i = 0;
-                for (auto it = elems.begin(); it != elems.end(); ++it, ++i) {
-                    if (elem < *it) {
+                auto elemIt = node->elems.begin();
+                auto childrenIt = node->children.begin();
+                while (elemIt != node->elems.end()) {
+                    if (elem < *elemIt) {
                         break;
+                    }
+                    ++elemIt;
+                    ++i;
+                    if (childrenIt != node->children.end()) {
+                        ++childrenIt;
                     }
                 }
                 indices.push(i);
 
                 // if node not saturated add to it and return iterator
-                if (elems.size() < maxNodeElems_) {
-                    elems.insert(it, elem);
-                    iterator insertedIt;
-                    insertedIt.node = node;
-                    insertedIt.indices = indices;
-                    return std::make_pair(insertedIt, true);
+                if (node->elems.size() < maxNodeElems_) {
+                    node->elems.insert(elemIt, elem);
+                    if (childrenIt != node->children.end()) {
+                        node->children.insert(childrenIt, nullptr);
+                    }
+                    return std::make_pair(iterator(node, indices), true);
                 }
 
                 // otherwise add to child
@@ -308,7 +291,7 @@ class btree {
                 }
                 if (node->children[i] == nullptr) {
                     // create actual child if doesnt exist yet
-                    node->children[i] = std::make_shared<btree>(maxNodeElems_);
+                    node->children[i] = std::make_unique<btree>(maxNodeElems_);
                 }
                 node = node->children[i];
             }

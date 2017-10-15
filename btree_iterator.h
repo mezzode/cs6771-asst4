@@ -22,6 +22,8 @@ class BTreeIterator {
         using pointer = T*;
         using reference = T&;
 
+        using btree<T>::Node;
+
         reference operator*() const {
             return node->elems[indices.top()];
         }
@@ -82,14 +84,12 @@ class BTreeIterator {
             return !operator==(other);
         } 
 
-        BTreeIterator() {
-            
-        }
+        BTreeIterator(Node* node_, std::stack<size_t> indices_): node{node_}, indices(indices_) { }
 
     private:
+        Node* node;
         std::stack<size_t> indices;
-        typename btree<T>::Node* node;
-        typename btree<T>::Node* endParent = nullptr;
+        Node* endParent = nullptr;
 
         friend class btree<T>; // ? so can edit the iterator for find()
 };
