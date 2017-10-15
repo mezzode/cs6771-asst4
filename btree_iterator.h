@@ -23,7 +23,7 @@ class BTreeIterator {
         using reference = T&;
 
         reference operator*() const {
-            return node->elems[indices.top()]; // how return reference
+            return node->elems[indices.top()];
         }
         
         pointer operator->() const {
@@ -32,19 +32,25 @@ class BTreeIterator {
 
         // prefix inc
         BTreeIterator& operator++() {
-            std::shared_ptr<btree> node = levels.top().lock();
             if (node->children.size() > indices.top() && // double check this logic
                     node->children.at(indices.top()) != nullptr) {
                 // if there is a child next to thingo, go to it
-                levels.push(children.at(indices.top()));
+                node = node->children.at(indices.top()).get();
+                ++indices.top(); // so in right place when return to this node
                 indices.push(0);
             } else {
                 ++indices.top();
-                if (indices.top() == node->children.size()) {
-                    // no more in this node, go to parent
-                    levels.pop();
+                // go upwards until at valid elem
+                while (indices.top() == node->elem.size()) {
                     indices.pop();
-                    ++indices.top();
+                    if (node->parent == nullptr) {
+                        // at end
+                        endParent = node;
+                        node = nullptr;
+                        break;
+                    }
+                    // go up
+                    node = node->parent;
                 }
             }
         }
@@ -82,7 +88,8 @@ class BTreeIterator {
 
     private:
         std::stack<size_t> indices;
-        btree<T>::Node* node;
+        typename btree<T>::Node* node;
+        typename btree<T>::Node* endParent = nullptr;
 
         friend class btree<T>; // ? so can edit the iterator for find()
 };

@@ -229,8 +229,8 @@ class btree {
 
         struct Node {
             std::vector<T> elems;
-            std::vector<std::shared_ptr<btree>> children;
-            std::weak_ptr<btree> parent; // or raw poiner?
+            std::vector<std::unique_ptr<btree>> children;
+            btree* parent;
 
             std::pair<iterator, bool> insert(const T& elem) {
                 if (elems.size() < maxNodeElems_) {
