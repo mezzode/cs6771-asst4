@@ -41,20 +41,25 @@ class BTreeIterator {
                 ++indices.top(); // so in right place when return to this node
                 indices.push(0);
             } else {
+                Node* originalNode = node;
+                auto originalIndices = indices;
                 ++indices.top();
                 // go upwards until at valid elem
                 while (indices.top() == node->elem.size()) {
                     indices.pop();
                     if (node->parent == nullptr) {
                         // at end
-                        endParent = node;
+                        endParent = originalNode;
                         node = nullptr;
+                        indices = originalIndices;
+                        indices.push(0);
                         break;
                     }
                     // go up
                     node = node->parent;
                 }
             }
+            return *this;
         }
 
         // postfix inc
@@ -84,12 +89,14 @@ class BTreeIterator {
             return !operator==(other);
         } 
 
-        BTreeIterator(Node* node_, std::stack<size_t> indices_): node{node_}, indices(indices_) { }
+        BTreeIterator(Node* node_, std::stack<size_t> indices_): node{node_}, indices(indices_), endParent{nullptr} { }
+        
+        BTreeIterator(std::stack<size_t> indices_, Node* endParent_): node{nullptr}, indices(indices_), endParent{endParent_} { }
 
     private:
         Node* node;
         std::stack<size_t> indices;
-        Node* endParent = nullptr;
+        Node* endParent;
 
         friend class btree<T>; // ? so can edit the iterator for find()
 };

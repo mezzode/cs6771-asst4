@@ -138,15 +138,27 @@ class btree {
                 return end();
             }
             std::unique_ptr<btree>& node = head; // not sure if need to make it raw ptr instead
-            std::stack<size_t> indices = {0};
-            while (!node->children.empty()) {
+            std::stack<size_t> indices;
+            while (!node->children.empty() && node->children.at(0) != nullptr) {
                 node = node->children.at(0);
                 indices.push(0);
             }
+            indices.push(0);
             return iterator(node.get(), indices);
         }
 
-        iterator end();
+        iterator end() {
+            // find largest element and create an iterator with endParent set to that
+            std::unique_ptr<btree>& node = head; // not sure if need to make it raw ptr instead
+            // get the size of elems; if there is a child at that index (i.e. something larger than the largest elem), go to that. otherwise take the largest elem.
+            while (!node->children.empty() && node->elems.size() == node->children.size() - 1) {
+                node = node->children.at(node->elems.size());
+                indices.push(node->elems.size());
+            }
+            indices.push(node->elems.size() - 1);
+            return iterator(indices, node.get());
+        }
+
         reverse_iterator rbegin() {
             return std::make_reverse_iterator(end());
         }
