@@ -133,7 +133,19 @@ class btree {
          * -- crbegin()
          * -- crend()
          */
-        iterator begin();
+        iterator begin() {
+            if (head == nullptr) {
+                return end();
+            }
+            std::unique_ptr<btree>& node = head; // not sure if need to make it raw ptr instead
+            std::stack<size_t> indices = {0};
+            while (!node->children.empty()) {
+                node = node->children.at(0);
+                indices.push(0);
+            }
+            return iterator(node.get(), indices);
+        }
+
         iterator end();
         reverse_iterator rbegin() {
             return std::make_reverse_iterator(end());
@@ -181,7 +193,7 @@ class btree {
                 } else if (node->elems.at(i) == elem) {
                     // found
                     indices.push(i);
-                    return iterator(node, indices);    
+                    return iterator(node.get(), indices);    
                 } else {
                     ++i;
                 }
@@ -281,7 +293,7 @@ class btree {
                     if (childrenIt != node->children.end()) {
                         node->children.insert(childrenIt, nullptr);
                     }
-                    return std::make_pair(iterator(node, indices), true);
+                    return std::make_pair(iterator(node.get(), indices), true);
                 }
 
                 // otherwise add to child
