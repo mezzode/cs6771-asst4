@@ -2,6 +2,7 @@
 #define BTREE_ITERATOR_H
 
 #include <iterator>
+#include <stack>
 
 /**
  * You MUST implement the btree iterators as (an) external class(es) in this file.
@@ -23,6 +24,7 @@ class BTreeIterator {
         using reference = T&;
 
         using Node = typename btree<T>::Node;
+        using size_type = typename btree<T>::size_type;
 
         reference operator*() const {
             return node->elems[indices.top()];
@@ -89,13 +91,19 @@ class BTreeIterator {
             return !operator==(other);
         } 
 
-        BTreeIterator(Node* node_, std::stack<int> indices_): node{node_}, indices(indices_), endParent{nullptr} { }
+        operator BTreeIterator<const T>() {
+            return BTreeIterator<const T>(node, indices, endParent);
+        }
+
+        BTreeIterator(Node* node_, std::stack<size_type> indices_): node{node_}, indices(indices_), endParent{nullptr} { }
         
-        BTreeIterator(std::stack<int> indices_, Node* endParent_): node{nullptr}, indices(indices_), endParent{endParent_} { }
+        BTreeIterator(std::stack<size_type> indices_, Node* endParent_): node{nullptr}, indices(indices_), endParent{endParent_} { }
+
+        BTreeIterator(Node* node_, std::stack<size_type> indices_, Node* endParent_): node{node_}, indices(indices_), endParent{endParent_} { }
 
     private:
         Node* node;
-        std::stack<int> indices;
+        std::stack<size_type> indices;
         Node* endParent;
 
         friend class btree<T>; // ? so can edit the iterator for find()

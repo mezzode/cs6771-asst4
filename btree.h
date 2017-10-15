@@ -13,22 +13,30 @@
 #include <cstddef>
 #include <iostream>
 #include <utility>
+#include <memory>
+#include <queue>
 
 // we better include the iterator
 #include "btree_iterator.h"
 
 // we do this to avoid compiler errors about non-template friends
 // what do we do, remember? :)
+template <typename T> class btree;
+
+template<typename T>
+std::ostream& operator<<(std::ostream& os, const btree<T>& tree);
 
 template <typename T>
 class btree {
     public:
         /** Hmm, need some iterator typedefs here... friends? **/
-        using iterator = BTreeIterator<T*>;
-        using const_iterator = BTreeIterator<const T*>; // does this actually work?
-        using reverse_iterator = decltype(std::make_reverse_iterator(begin()));
-        using const_reverse_iterator = decltype(std::make_reverse_iterator(cbegin()));
+        using iterator = BTreeIterator<T>;
+        using const_iterator = BTreeIterator<const T>; // does this actually work?
+        using reverse_iterator = std::reverse_iterator<iterator>;
+        using const_reverse_iterator = std::reverse_iterator<const_iterator>;
         friend class BTreeIterator<T>; // or <T*>?
+
+        using size_type = typename std::vector<T>::size_type;
 
         /**
          * Constructs an empty btree.  Note that
@@ -43,7 +51,7 @@ class btree {
          * @param maxNodeElems the maximum number of elements
          *        that can be stored in each B-Tree node
          */
-        btree(int maxNodeElems = 40);
+        btree(size_type maxNodeElems_ = 40) : maxNodeElems{maxNodeElems_} {}
 
         /**
          * The copy constructor and  assignment operator.
@@ -96,19 +104,20 @@ class btree {
          * @param tree a const reference to a B-Tree object
          * @return a reference to os
          */
-        friend std::ostream& operator<<<T>(std::ostream& os, const btree<T>& tree) {
+        // template<typename T>
+        friend std::ostream& operator<<(std::ostream& os, const btree<T>& tree) {
             std::queue<Node*> queue = {tree.head.get()};
             while (!queue.empty()) {
                 // add nodes' children to queue
-                for (const Node<T>& child : queue.front()->children) {
+                for (const Node& child : queue.front()->children) {
                     if (child != nullptr) {
                         queue.push(child.get());
                     }
                 }
-
+        
                 // print the nodes' contents
                 const std::vector<T> elems = queue.front()->elems;
-                for (int i = 0; i < elems.size(); ++i) {
+                for (size_type i = 0; i < elems.size(); ++i) {
                     os << elems.at(i); // print elem
                     if (i < elems.size() - 1 || queue.size() > 1) {
                         // only print space if something else afterward
@@ -133,25 +142,25 @@ class btree {
          * -- crbegin()
          * -- crend()
          */
-        iterator begin() {
+        iterator begin() const {
             if (head == nullptr) {
                 return end();
             }
             Node* node = head.get(); // not sure if need to make it raw ptr instead
-            std::stack<int> indices;
+            std::stack<size_type> indices;
             while (!node->children.empty() && node->children.at(0) != nullptr) {
-                node = node->children.at(0);
+                node = node->children.at(0).get();
                 indices.push(0);
             }
             indices.push(0);
             return iterator(node, indices);
         }
 
-        iterator end() {
+        iterator end() const {
             // find largest element and create an iterator with endParent set to that
             // what is head is null
             Node* node = head.get(); // not sure if need to make it raw ptr instead
-            // std::stack<int> indices = {0};
+            std::stack<size_type> indices;
             // while (!node->children.empty()) {
             //     auto i = node->elems.size();
             //     if (i < node->children.size()) {
@@ -165,7 +174,7 @@ class btree {
             // issue since end of children may not right of end of elems
             // get the size of elems; if there is a child at that index (i.e. something larger than the largest elem), go to that. otherwise take the largest elem.
             while (!node->children.empty() && node->elems.size() == node->children.size() - 1) {
-                node = node->children.at(node->elems.size());
+                node = node->children.at(node->elems.size()).get();
                 indices.push(node->elems.size());
             }
             indices.push(node->elems.size() - 1);
@@ -175,14 +184,23 @@ class btree {
         reverse_iterator rbegin() {
             return std::make_reverse_iterator(end());
         }
+
         reverse_iterator rend() {
             return std::make_reverse_iterator(begin());
         }
-        const_iterator cbegin();
-        const_iterator cend();
+
+        const_iterator cbegin() {
+            return static_cast<const_iterator>(begin());
+        }
+
+        const_iterator cend() {
+            return static_cast<const_iterator>(end());
+        }
+
         const_reverse_iterator crbegin() {
             return std::make_reverse_iterator(cend());
         }
+
         const_reverse_iterator crend() {
             return std::make_reverse_iterator(cbegin());
         }
@@ -203,8 +221,8 @@ class btree {
          */
         iterator find(const T& elem) {
             Node* node = head.get(); // not sure if need to make it raw ptr instead
-            std::stack<int> indices;
-            int i = 0;
+            std::stack<size_type> indices;
+            size_type i = 0;
             while (node != nullptr) {
                 if (elem < node->elems.at(i) || i == node->elems.size()) {
                     // look in that child
@@ -212,7 +230,7 @@ class btree {
                         // no child
                         return end();
                     }
-                    node = node->children.at(i);
+                    node = node->children.at(i).get();
                     indices.push(i);
                     i = 0;
                 } else if (node->elems.at(i) == elem) {
@@ -264,27 +282,6 @@ class btree {
          *         stores true if and only if the element needed to be added
          *         because no matching element was there prior to the insert call.
          */
-        std::pair<iterator, bool> insert(const T& elem);
-
-        /**
-         * Disposes of all internal resources, which includes
-         * the disposal of any client objects previously
-         * inserted using the insert operation.
-         * Check that your implementation does not leak memory!
-         */
-        ~btree();
-
-    private:
-        btree(int maxNodeElems = 40) : maxNodeElems_{maxNodeElems} {}
-
-        struct Node {
-            std::vector<T> elems;
-            std::vector<std::unique_ptr<Node>> children;
-            btree* parent;
-        }
-
-        std::unique_ptr<Node> head;
-
         std::pair<iterator, bool> insert(const T& elem) {
             iterator it = find(elem);
             if (it != end()) {
@@ -293,11 +290,11 @@ class btree {
             }
 
             Node* node = head.get(); // not sure if need to make it raw ptr instead
-            std::stack<int> indices;
+            std::stack<size_type> indices;
 
             while (true) {
                 // find index
-                int i = 0;
+                size_type i = 0;
                 auto elemIt = node->elems.begin();
                 auto childrenIt = node->children.begin();
                 while (elemIt != node->elems.end()) {
@@ -313,7 +310,7 @@ class btree {
                 indices.push(i);
 
                 // if node not saturated add to it and return iterator
-                if (node->elems.size() < maxNodeElems_) {
+                if (node->elems.size() < maxNodeElems) {
                     node->elems.insert(elemIt, elem);
                     if (childrenIt != node->children.end()) {
                         node->children.insert(childrenIt, nullptr);
@@ -328,11 +325,29 @@ class btree {
                 }
                 if (node->children[i] == nullptr) {
                     // create actual child if doesnt exist yet
-                    node->children[i] = std::make_unique<Node>(maxNodeElems_);
+                    node->children[i] = std::make_unique<Node>();
                 }
-                node = node->children[i];
+                node = node->children[i].get();
             }
         }
+
+        /**
+         * Disposes of all internal resources, which includes
+         * the disposal of any client objects previously
+         * inserted using the insert operation.
+         * Check that your implementation does not leak memory!
+         */
+        ~btree();
+
+    private:
+        struct Node {
+            std::vector<T> elems;
+            std::vector<std::unique_ptr<Node>> children;
+            btree* parent;
+        };
+
+        std::unique_ptr<Node> head;
+        size_type maxNodeElems;
 };
 
 #endif
