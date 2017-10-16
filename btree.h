@@ -34,9 +34,12 @@ class btree {
         using const_iterator = BTreeIterator<const T>; // does this actually work?
         using reverse_iterator = std::reverse_iterator<iterator>;
         using const_reverse_iterator = std::reverse_iterator<const_iterator>;
-        friend class BTreeIterator<T>; // or <T*>?
+        // friend class BTreeIterator<T>; // or <T*>?
+        // friend class BTreeIterator<const T>;
+        template <typename U> friend class BTreeIterator;
 
-        using size_type = typename std::vector<T>::size_type;
+        // using size_type = typename std::vector<T>::size_type; // doesnt work for vector<const T> since that would be meaningless
+        using size_type = unsigned int;
 
         /**
          * Constructs an empty btree.  Note that
@@ -68,7 +71,16 @@ class btree {
          *
          * @param original a const lvalue reference to a B-Tree object
          */
-        btree(const btree<T>& original);
+        btree(const btree<T>& original): maxNodeElems{original.maxNodeElems} {
+            // head = original.head;
+            // head = make_unique()
+            // Node<T>* node = original.head.get();
+            // while (node != nullptr) {
+
+            // }
+            // loop version would be finicky since branching, prolly better to do recursive copying
+            head = std::make_unique<Node<T>>(*original.head, nullptr); // make a unique copy of what original.head points to
+        } // TODO:
 
         /**
          * Move constructor
@@ -76,7 +88,7 @@ class btree {
          *
          * @param original an rvalue reference to a B-Tree object
          */
-        btree(btree<T>&& original);
+        btree(btree<T>&& original) = default;
 
         /**
          * Copy assignment
@@ -84,7 +96,12 @@ class btree {
          *
          * @param rhs a const lvalue reference to a B-Tree object
          */
-        btree<T>& operator=(const btree<T>& rhs);
+        btree<T>& operator=(const btree<T>& rhs) {
+            // copy and swap
+            btree tmp = rhs;
+            swap(tmp, *this);
+            return *this;
+        }
 
         /**
          * Move assignment
@@ -93,7 +110,7 @@ class btree {
          *
          * @param rhs a const reference to a B-Tree object
          */
-        btree<T>& operator=(btree<T>&& rhs);
+        btree<T>& operator=(btree<T>&& rhs) = default;
 
         /**
          * Puts a breadth-first traversal of the B-Tree onto the output
@@ -106,11 +123,11 @@ class btree {
          */
         // template<typename T>
         friend std::ostream& operator<<(std::ostream& os, const btree<T>& tree) {
-            std::queue<Node*> queue = {tree.head.get()};
+            std::queue<Node<T>*> queue = {tree.head.get()};
             while (!queue.empty()) {
                 // add nodes' children to queue
-                for (const Node& child : queue.front()->children) {
-                    if (child != nullptr) {
+                for (const Node<T>& child : queue.front()->children) {
+                    if (child) { // child.get != nullptr
                         queue.push(child.get());
                     }
                 }
@@ -142,13 +159,10 @@ class btree {
          * -- crbegin()
          * -- crend()
          */
-        iterator begin() const {
-            if (head == nullptr) {
-                return end();
-            }
-            Node* node = head.get(); // not sure if need to make it raw ptr instead
+        iterator begin() {
+            Node<T>* node = head.get();
             std::stack<size_type> indices;
-            while (!node->children.empty() && node->children.at(0) != nullptr) {
+            while (!node->children.empty() && node->children.at(0)) { // node->children.at(0).get() != nullptr
                 node = node->children.at(0).get();
                 indices.push(0);
             }
@@ -156,10 +170,18 @@ class btree {
             return iterator(node, indices);
         }
 
-        iterator end() const {
+        const_iterator begin() const {
+            return cbegin();
+        }
+
+        const_iterator end() const {
+            return cend();
+        }
+
+        iterator end() {
             // find largest element and create an iterator with endParent set to that
             // what is head is null
-            Node* node = head.get(); // not sure if need to make it raw ptr instead
+            Node<T>* node = head.get(); // not sure if need to make it raw ptr instead
             std::stack<size_type> indices;
             // while (!node->children.empty()) {
             //     auto i = node->elems.size();
@@ -181,27 +203,27 @@ class btree {
             return iterator(indices, node);
         }
 
-        reverse_iterator rbegin() {
+        reverse_iterator rbegin() const {
             return std::make_reverse_iterator(end());
         }
 
-        reverse_iterator rend() {
+        reverse_iterator rend() const {
             return std::make_reverse_iterator(begin());
         }
 
-        const_iterator cbegin() {
+        const_iterator cbegin() const {
             return static_cast<const_iterator>(begin());
         }
 
-        const_iterator cend() {
+        const_iterator cend() const {
             return static_cast<const_iterator>(end());
         }
 
-        const_reverse_iterator crbegin() {
+        const_reverse_iterator crbegin() const {
             return std::make_reverse_iterator(cend());
         }
 
-        const_reverse_iterator crend() {
+        const_reverse_iterator crend() const {
             return std::make_reverse_iterator(cbegin());
         }
 
@@ -220,7 +242,7 @@ class btree {
          *         non-const end() returns if no such match was ever found.
          */
         iterator find(const T& elem) {
-            Node* node = head.get(); // not sure if need to make it raw ptr instead
+            Node<T>* node = head.get(); // not sure if need to make it raw ptr instead
             std::stack<size_type> indices;
             size_type i = 0;
             while (node != nullptr) {
@@ -289,7 +311,11 @@ class btree {
                 return std::make_pair(it, false);
             }
 
-            Node* node = head.get(); // not sure if need to make it raw ptr instead
+            if (!head) {
+                head = std::make_unique<Node<T>>(nullptr);
+            }
+
+            Node<T>* node = head.get(); // not sure if need to make it raw ptr instead
             std::stack<size_type> indices;
 
             while (true) {
@@ -325,7 +351,7 @@ class btree {
                 }
                 if (node->children[i] == nullptr) {
                     // create actual child if doesnt exist yet
-                    node->children[i] = std::make_unique<Node>();
+                    node->children[i] = std::make_unique<Node<T>>(node);
                 }
                 node = node->children[i].get();
             }
@@ -337,17 +363,36 @@ class btree {
          * inserted using the insert operation.
          * Check that your implementation does not leak memory!
          */
-        ~btree();
+        ~btree() = default;
 
     private:
-        struct Node {
-            std::vector<T> elems;
-            std::vector<std::unique_ptr<Node>> children;
-            btree* parent;
-        };
-
-        std::unique_ptr<Node> head;
+        std::unique_ptr<Node<T>> head;
         size_type maxNodeElems;
+
+        // template <typename T_>
+        // friend void swap(btree<T_>)
+        friend void swap(btree<T>& a, btree<T>& b) {
+            using std::swap;
+            swap(a.head, b.head);
+            swap(a.maxNodeElems, b.maxNodeElems);
+        }
+};
+
+template <typename T>
+struct Node {
+    Node(Node* parent_): parent{parent_} {};
+
+    Node(const Node<T>& original, Node* parent_): elems(original.elems), parent{parent_} {
+        for (const auto& child : original.children) { // std::transform?
+            children.push_back(std::make_unique<Node<T>>(*child, this)); // make a unique copy of each child
+        }
+    }
+
+    std::vector<T> elems;
+    std::vector<std::unique_ptr<Node<T>>> children;
+    Node* parent;
+    // friend btree<T>;
+    // friend BTreeIterator<T>;
 };
 
 #endif

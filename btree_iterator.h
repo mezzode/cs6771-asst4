@@ -13,6 +13,7 @@
 // iterator class btree_iterator (and possibly const_btree_iterator)
 
 template <typename T> class btree;
+template <typename T> class Node;
 
 template<typename T>
 class BTreeIterator {
@@ -23,8 +24,8 @@ class BTreeIterator {
         using pointer = T*;
         using reference = T&;
 
-        using Node = typename btree<T>::Node;
-        using size_type = typename btree<T>::size_type;
+        // using size_type = typename btree<T>::size_type;
+        using size_type = unsigned int;
 
         reference operator*() const {
             return node->elems[indices.top()];
@@ -42,18 +43,18 @@ class BTreeIterator {
             // if no elem or child to the right, take the elem to the right in the parent
             // if no elem to the right in the parent go to the next parent. continue as necessary
             if (indices.top() + 1 < node->children.size() && // double check this logic
-                    node->children.at(indices.top() + 1) != nullptr) {
+                    node->children.at(indices.top() + 1)) {
                 // if there is a child to the right, go to it
                 ++indices.top();
                 node = node->children.at(indices.top()).get();
                 indices.push(0);
                 // go to smallest elem in the right subtree
-                while (!node->children.empty() && node->children.at(0) != nullptr) {
+                while (!node->children.empty() && node->children.at(0)) {
                     node = node->children.at(0);
                     indices.push(0);
                 }
             } else {
-                Node* originalNode = node;
+                Node<T>* originalNode = node;
                 auto originalIndices = indices;
                 ++indices.top();
                 // go upwards until at valid elem
@@ -102,21 +103,19 @@ class BTreeIterator {
         } 
 
         operator BTreeIterator<const T>() {
-            return BTreeIterator<const T>(node, indices, endParent);
+            return BTreeIterator<const T>(static_cast<const Node<T>*>(node), indices, static_cast<const Node<T>*>(endParent));
         }
 
-        BTreeIterator(Node* node_, std::stack<size_type> indices_): node{node_}, indices{indices_}, endParent{nullptr} { }
+        BTreeIterator(Node<T>* node_, std::stack<size_type> indices_): node{node_}, indices{indices_}, endParent{nullptr} { }
         
-        BTreeIterator(std::stack<size_type> indices_, Node* endParent_): node{nullptr}, indices{indices_}, endParent{endParent_} { }
+        BTreeIterator(std::stack<size_type> indices_, Node<T>* endParent_): node{nullptr}, indices{indices_}, endParent{endParent_} { }
 
-        BTreeIterator(Node* node_, std::stack<size_type> indices_, Node* endParent_): node{node_}, indices{indices_}, endParent{endParent_} { }
+        BTreeIterator(Node<T>* node_, std::stack<size_type> indices_, Node<T>* endParent_): node{node_}, indices{indices_}, endParent{endParent_} { }
 
     private:
-        Node* node;
+        Node<T>* node;
         std::stack<size_type> indices;
-        Node* endParent;
-
-        friend class btree<T>; // ? so can edit the iterator for find()
+        Node<T>* endParent;
 };
 
 #endif
