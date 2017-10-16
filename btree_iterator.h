@@ -36,12 +36,22 @@ class BTreeIterator {
 
         // prefix inc
         BTreeIterator& operator++() {
-            if (node->children.size() > indices.top() && // double check this logic
-                    node->children.at(indices.top()) != nullptr) {
-                // if there is a child next to thingo, go to it
+            // go to leftmost thing that is to the right of the current node
+            // if there is a child to the right (i.e. in index i+1), take the leftmost thing in that subtree
+            // else take the elem to the right (i.e. i+1)
+            // if no elem or child to the right, take the elem to the right in the parent
+            // if no elem to the right in the parent go to the next parent. continue as necessary
+            if (indices.top() + 1 < node->children.size() && // double check this logic
+                    node->children.at(indices.top() + 1) != nullptr) {
+                // if there is a child to the right, go to it
+                ++indices.top();
                 node = node->children.at(indices.top()).get();
-                ++indices.top(); // so in right place when return to this node
                 indices.push(0);
+                // go to smallest elem in the right subtree
+                while (!node->children.empty() && node->children.at(0) != nullptr) {
+                    node = node->children.at(0);
+                    indices.push(0);
+                }
             } else {
                 Node* originalNode = node;
                 auto originalIndices = indices;
@@ -95,11 +105,11 @@ class BTreeIterator {
             return BTreeIterator<const T>(node, indices, endParent);
         }
 
-        BTreeIterator(Node* node_, std::stack<size_type> indices_): node{node_}, indices(indices_), endParent{nullptr} { }
+        BTreeIterator(Node* node_, std::stack<size_type> indices_): node{node_}, indices{indices_}, endParent{nullptr} { }
         
-        BTreeIterator(std::stack<size_type> indices_, Node* endParent_): node{nullptr}, indices(indices_), endParent{endParent_} { }
+        BTreeIterator(std::stack<size_type> indices_, Node* endParent_): node{nullptr}, indices{indices_}, endParent{endParent_} { }
 
-        BTreeIterator(Node* node_, std::stack<size_type> indices_, Node* endParent_): node{node_}, indices(indices_), endParent{endParent_} { }
+        BTreeIterator(Node* node_, std::stack<size_type> indices_, Node* endParent_): node{node_}, indices{indices_}, endParent{endParent_} { }
 
     private:
         Node* node;
