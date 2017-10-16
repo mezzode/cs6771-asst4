@@ -54,7 +54,7 @@ class BTreeIterator {
                     indices.push(0);
                 }
             } else {
-                Node<T>* originalNode = node;
+                Node<std::remove_const_t<T>>* originalNode = node;
                 auto originalIndices = indices;
                 ++indices.top();
                 // go upwards until at valid elem
@@ -84,7 +84,32 @@ class BTreeIterator {
 
         // prefix dec
         BTreeIterator& operator--() {
-            // TODO
+            // if (node->children.size() < indices.top()-1 && // double check this logic
+            //         node->children.at(indices.top()-1) != nullptr) {
+            //     // if there is a child next to thingo, go to it
+            //     node = node->children.at(indices.top()-1).get();
+            //     indices.push(node->elems.size() - 1); // now that i think of it, need to recurse down? i.e. prev elem will be rightmost thing to its left.
+            // } else {
+            //     Node<std::remove_const_t<T>>* originalNode = node;
+            //     auto originalIndices = indices;
+            //     --indices.top();
+            //     // go upwards until at valid elem
+            //     while (indices.top() == node->elem.size()) {
+            //         indices.pop();
+            //         if (node->parent == nullptr) {
+            //             // at end
+            //             endParent = originalNode;
+            //             node = nullptr;
+            //             indices = originalIndices;
+            //             indices.push(0);
+            //             break;
+            //         }
+            //         // go up
+            //         node = node->parent;
+            //     }
+            // }
+            // return *this;
+            // if (indices.top() - 1) // the child with the same index as an elem is the left child
         }
 
         // postfix dec
@@ -102,20 +127,24 @@ class BTreeIterator {
             return !operator==(other);
         } 
 
+        // casting iterators to const_iterators
         operator BTreeIterator<const T>() {
-            return BTreeIterator<const T>(static_cast<const Node<T>*>(node), indices, static_cast<const Node<T>*>(endParent));
+            // return BTreeIterator<const T>(static_cast<Node<const T>*>(node), indices, static_cast<Node<const T>*>(endParent));
+            return BTreeIterator<const T>(node, indices, endParent);
         }
 
-        BTreeIterator(Node<T>* node_, std::stack<size_type> indices_): node{node_}, indices{indices_}, endParent{nullptr} { }
+        BTreeIterator(Node<std::remove_const_t<T>>* node_, std::stack<size_type> indices_): BTreeIterator(node_, indices_, nullptr) { }
         
-        BTreeIterator(std::stack<size_type> indices_, Node<T>* endParent_): node{nullptr}, indices{indices_}, endParent{endParent_} { }
+        BTreeIterator(std::stack<size_type> indices_, Node<std::remove_const_t<T>>* endParent_): node{nullptr}, indices{indices_}, endParent{endParent_} { }
 
-        BTreeIterator(Node<T>* node_, std::stack<size_type> indices_, Node<T>* endParent_): node{node_}, indices{indices_}, endParent{endParent_} { }
+        BTreeIterator(Node<std::remove_const_t<T>>* node_, std::stack<size_type> indices_, Node<std::remove_const_t<T>>* endParent_): node{node_}, indices{indices_}, endParent{endParent_} { }
+
+        // BTreeIterator(const Node<std::remove_const_t<T>>* node_, std::stack<size_type> indices_, const Node<std::remove_const_t<T>>* endParent_): node{node_}, indices{indices_}, endParent{endParent_} { }
 
     private:
-        Node<T>* node;
+        Node<std::remove_const_t<T>>* node;
         std::stack<size_type> indices;
-        Node<T>* endParent;
+        Node<std::remove_const_t<T>>* endParent;
 };
 
 #endif

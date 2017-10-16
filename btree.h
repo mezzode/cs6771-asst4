@@ -160,47 +160,19 @@ class btree {
          * -- crend()
          */
         iterator begin() {
-            Node<T>* node = head.get();
-            std::stack<size_type> indices;
-            while (!node->children.empty() && node->children.at(0)) { // node->children.at(0).get() != nullptr
-                node = node->children.at(0).get();
-                indices.push(0);
-            }
-            indices.push(0);
-            return iterator(node, indices);
+            return begin_();
         }
 
         const_iterator begin() const {
-            return cbegin();
+            return begin_(); // static_cast?
         }
 
         const_iterator end() const {
-            return cend();
+            return end_();
         }
 
         iterator end() {
-            // find largest element and create an iterator with endParent set to that
-            // what is head is null
-            Node<T>* node = head.get(); // not sure if need to make it raw ptr instead
-            std::stack<size_type> indices;
-            // while (!node->children.empty()) {
-            //     auto i = node->elems.size();
-            //     if (i < node->children.size()) {
-            //         node = node->children.at(i);
-            //         indices.push(i);
-            //     } else {
-
-            //     }
-                
-            // }
-            // issue since end of children may not right of end of elems
-            // get the size of elems; if there is a child at that index (i.e. something larger than the largest elem), go to that. otherwise take the largest elem.
-            while (!node->children.empty() && node->elems.size() == node->children.size() - 1) {
-                node = node->children.at(node->elems.size()).get();
-                indices.push(node->elems.size());
-            }
-            indices.push(node->elems.size() - 1);
-            return iterator(indices, node);
+            return end_();
         }
 
         reverse_iterator rbegin() const {
@@ -212,11 +184,11 @@ class btree {
         }
 
         const_iterator cbegin() const {
-            return static_cast<const_iterator>(begin());
+            return static_cast<const_iterator>(begin_());
         }
 
         const_iterator cend() const {
-            return static_cast<const_iterator>(end());
+            return static_cast<const_iterator>(end_());
         }
 
         const_reverse_iterator crbegin() const {
@@ -242,28 +214,7 @@ class btree {
          *         non-const end() returns if no such match was ever found.
          */
         iterator find(const T& elem) {
-            Node<T>* node = head.get(); // not sure if need to make it raw ptr instead
-            std::stack<size_type> indices;
-            size_type i = 0;
-            while (node != nullptr) {
-                if (elem < node->elems.at(i) || i == node->elems.size()) {
-                    // look in that child
-                    if (i >= node->children.size()) {
-                        // no child
-                        return end();
-                    }
-                    node = node->children.at(i).get();
-                    indices.push(i);
-                    i = 0;
-                } else if (node->elems.at(i) == elem) {
-                    // found
-                    indices.push(i);
-                    return iterator(node, indices);    
-                } else {
-                    ++i;
-                }
-            }
-            return end();
+            return find_(elem);
         }
 
         /**
@@ -275,7 +226,9 @@ class btree {
          * @return an iterator to the matching element, or whatever the
          *         const end() returns if no such match was ever found.
          */
-        const_iterator find(const T& elem) const;
+        const_iterator find(const T& elem) const {
+            return static_cast<const_iterator>(find_(elem));
+        }
 
         /**
          * Operation which inserts the specified element
@@ -369,6 +322,67 @@ class btree {
         std::unique_ptr<Node<T>> head;
         size_type maxNodeElems;
 
+        iterator begin_() const {
+            Node<T>* node = head.get();
+            std::stack<size_type> indices;
+            while (!node->children.empty() && node->children.at(0)) { // node->children.at(0).get() != nullptr
+                node = node->children.at(0).get();
+                indices.push(0);
+            }
+            indices.push(0);
+            return iterator(node, indices);
+        }
+        
+        iterator end_() const {
+            // find largest element and create an iterator with endParent set to that
+            // what is head is null
+            Node<T>* node = head.get(); // not sure if need to make it raw ptr instead
+            std::stack<size_type> indices;
+            // while (!node->children.empty()) {
+            //     auto i = node->elems.size();
+            //     if (i < node->children.size()) {
+            //         node = node->children.at(i);
+            //         indices.push(i);
+            //     } else {
+
+            //     }
+                
+            // }
+            // issue since end of children may not right of end of elems
+            // get the size of elems; if there is a child at that index (i.e. something larger than the largest elem), go to that. otherwise take the largest elem.
+            while (!node->children.empty() && node->elems.size() == node->children.size() - 1) {
+                node = node->children.at(node->elems.size()).get();
+                indices.push(node->elems.size());
+            }
+            indices.push(node->elems.size() - 1);
+            return iterator(indices, node);
+        }
+
+        iterator find_(const T& elem) const {
+            Node<T>* node = head.get(); // not sure if need to make it raw ptr instead
+            std::stack<size_type> indices;
+            size_type i = 0;
+            while (node != nullptr) {
+                if (elem < node->elems.at(i) || i == node->elems.size()) {
+                    // look in that child
+                    if (i >= node->children.size()) {
+                        // no child
+                        return end_();
+                    }
+                    node = node->children.at(i).get();
+                    indices.push(i);
+                    i = 0;
+                } else if (node->elems.at(i) == elem) {
+                    // found
+                    indices.push(i);
+                    return iterator(node, indices);    
+                } else {
+                    ++i;
+                }
+            }
+            return end_();
+        }
+
         // template <typename T_>
         // friend void swap(btree<T_>)
         friend void swap(btree<T>& a, btree<T>& b) {
@@ -381,6 +395,13 @@ class btree {
 template <typename T>
 struct Node {
     Node(Node* parent_): parent{parent_} {};
+
+    // operator BTreeIterator<const T>() {
+    //     return BTreeIterator<const T>(static_cast<Node<const T>*>(node), indices, static_cast<Node<const T>*>(endParent));
+    // }
+    // operator Node<const T>() {
+    //     return Node<const T>(original, parent);
+    // }
 
     Node(const Node<T>& original, Node* parent_): elems(original.elems), parent{parent_} {
         for (const auto& child : original.children) { // std::transform?
