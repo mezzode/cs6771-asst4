@@ -164,11 +164,11 @@ class btree {
         }
 
         reverse_iterator rbegin() const {
-            return std::make_reverse_iterator(end());
+            return std::reverse_iterator<iterator>(end());
         }
 
         reverse_iterator rend() const {
-            return std::make_reverse_iterator(begin());
+            return std::reverse_iterator<iterator>(begin());
         }
 
         const_iterator cbegin() const {
@@ -180,11 +180,11 @@ class btree {
         }
 
         const_reverse_iterator crbegin() const {
-            return std::make_reverse_iterator(cend());
+            return std::reverse_iterator<const_iterator>(cend());
         }
 
         const_reverse_iterator crend() const {
-            return std::make_reverse_iterator(cbegin());
+            return std::reverse_iterator<const_iterator>(cbegin());
         }
 
         /**
