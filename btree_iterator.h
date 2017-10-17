@@ -26,6 +26,7 @@ class BTreeIterator {
 
         // using size_type = typename btree<T>::size_type;
         using size_type = unsigned int;
+        using Node = typename btree<std::remove_const_t<T>>::Node;
 
         reference operator*() const {
             return node->elems[indices.top()];
@@ -54,7 +55,7 @@ class BTreeIterator {
                     indices.push(0);
                 }
             } else {
-                Node<std::remove_const_t<T>>* originalNode = node;
+                Node* originalNode = node;
                 auto originalIndices = indices;
                 ++indices.top();
                 // go upwards until at valid elem
@@ -134,18 +135,18 @@ class BTreeIterator {
             return BTreeIterator<const T>(node, indices, endParent);
         }
 
-        BTreeIterator(Node<std::remove_const_t<T>>* node_, std::stack<size_type> indices_): BTreeIterator(node_, indices_, nullptr) { }
+        BTreeIterator(Node* node_, std::stack<size_type> indices_): BTreeIterator(node_, indices_, nullptr) { }
 
-        BTreeIterator(std::stack<size_type> indices_, Node<std::remove_const_t<T>>* endParent_): node{nullptr}, indices{indices_}, endParent{endParent_} { }
+        BTreeIterator(std::stack<size_type> indices_, Node* endParent_): node{nullptr}, indices{indices_}, endParent{endParent_} { }
 
-        BTreeIterator(Node<std::remove_const_t<T>>* node_, std::stack<size_type> indices_, Node<std::remove_const_t<T>>* endParent_): node{node_}, indices{indices_}, endParent{endParent_} { }
+        BTreeIterator(Node* node_, std::stack<size_type> indices_, Node* endParent_): node{node_}, indices{indices_}, endParent{endParent_} { }
 
-        // BTreeIterator(const Node<std::remove_const_t<T>>* node_, std::stack<size_type> indices_, const Node<std::remove_const_t<T>>* endParent_): node{node_}, indices{indices_}, endParent{endParent_} { }
+        // BTreeIterator(const Node* node_, std::stack<size_type> indices_, const Node* endParent_): node{node_}, indices{indices_}, endParent{endParent_} { }
 
     private:
-        Node<std::remove_const_t<T>>* node;
+        Node* node;
         std::stack<size_type> indices;
-        Node<std::remove_const_t<T>>* endParent;
+        Node* endParent;
 };
 
 template <typename T>

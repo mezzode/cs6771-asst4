@@ -74,12 +74,12 @@ class btree {
         btree(const btree<T>& original): maxNodeElems{original.maxNodeElems} {
             // head = original.head;
             // head = make_unique()
-            // Node<T>* node = original.head.get();
+            // Node* node = original.head.get();
             // while (node != nullptr) {
 
             // }
             // loop version would be finicky since branching, prolly better to do recursive copying
-            head = std::make_unique<Node<T>>(*original.head, nullptr); // make a unique copy of what original.head points to
+            head = std::make_unique<Node>(*original.head, nullptr); // make a unique copy of what original.head points to
         } // TODO:
 
         /**
@@ -129,7 +129,7 @@ class btree {
          */
         // template<typename T>
         friend std::ostream& operator<<(std::ostream& os, const btree<T>& tree) {
-            std::queue<Node<T>*> queue;
+            std::queue<Node*> queue;
             if (tree.head) {
                 queue.push(tree.head.get());
             }
@@ -274,10 +274,10 @@ class btree {
             }
 
             if (!head) {
-                head = std::make_unique<Node<T>>(nullptr);
+                head = std::make_unique<Node>(nullptr);
             }
 
-            Node<T>* node = head.get(); // not sure if need to make it raw ptr instead
+            Node* node = head.get(); // not sure if need to make it raw ptr instead
             std::stack<size_type> indices;
 
             while (true) {
@@ -313,7 +313,7 @@ class btree {
                 }
                 if (node->children[i] == nullptr) {
                     // create actual child if doesnt exist yet
-                    node->children[i] = std::make_unique<Node<T>>(node);
+                    node->children[i] = std::make_unique<Node>(node);
                 }
                 node = node->children[i].get();
             }
@@ -328,7 +328,35 @@ class btree {
         ~btree() = default;
 
     private:
-        std::unique_ptr<Node<T>> head;
+        // template <typename T>
+        struct Node {
+            Node(Node* parent_): parent{parent_} {};
+        
+            // operator BTreeIterator<const T>() {
+            //     return BTreeIterator<const T>(static_cast<Node<const T>*>(node), indices, static_cast<Node<const T>*>(endParent));
+            // }
+            // operator Node<const T>() {
+            //     return Node<const T>(original, parent);
+            // }
+        
+            Node(const Node& original, Node* parent_): elems(original.elems), parent{parent_} {
+                for (const auto& child : original.children) { // std::transform?
+                    if (child != nullptr) {
+                        children.push_back(std::make_unique<Node>(*child, this)); // make a unique copy of each child // issues with pushing unique_ptrs to vectors since copying?
+                    } else {
+                        children.push_back(nullptr);
+                    }
+                }
+            }
+        
+            std::vector<T> elems;
+            std::vector<std::unique_ptr<Node>> children;
+            Node* parent;
+            // friend btree<T>;
+            // friend BTreeIterator<T>;
+        };
+
+        std::unique_ptr<Node> head;
         size_type maxNodeElems;
 
         iterator begin_() const {
@@ -336,7 +364,7 @@ class btree {
                 return iterator(std::stack<size_type>(), nullptr);
             }
 
-            Node<T>* node = head.get();
+            Node* node = head.get();
             std::stack<size_type> indices;
             while (!node->children.empty() && node->children.at(0)) { // node->children.at(0).get() != nullptr
                 node = node->children.at(0).get();
@@ -353,7 +381,7 @@ class btree {
                 return iterator(std::stack<size_type>(), nullptr);
             }
 
-            Node<T>* node = head.get(); // not sure if need to make it raw ptr instead
+            Node* node = head.get(); // not sure if need to make it raw ptr instead
             std::stack<size_type> indices;
             // while (!node->children.empty()) {
             //     auto i = node->elems.size();
@@ -376,7 +404,7 @@ class btree {
         }
 
         iterator find_(const T& elem) const {
-            Node<T>* node = head.get(); // not sure if need to make it raw ptr instead
+            Node* node = head.get(); // not sure if need to make it raw ptr instead
             std::stack<size_type> indices;
             size_type i = 0;
             while (node != nullptr && i <= node->elems.size()) { // TODO: check logic
@@ -407,34 +435,6 @@ class btree {
             swap(a.head, b.head);
             swap(a.maxNodeElems, b.maxNodeElems);
         }
-};
-
-template <typename T>
-struct Node {
-    Node(Node* parent_): parent{parent_} {};
-
-    // operator BTreeIterator<const T>() {
-    //     return BTreeIterator<const T>(static_cast<Node<const T>*>(node), indices, static_cast<Node<const T>*>(endParent));
-    // }
-    // operator Node<const T>() {
-    //     return Node<const T>(original, parent);
-    // }
-
-    Node(const Node<T>& original, Node* parent_): elems(original.elems), parent{parent_} {
-        for (const auto& child : original.children) { // std::transform?
-            if (child != nullptr) {
-                children.push_back(std::make_unique<Node<T>>(*child, this)); // make a unique copy of each child // issues with pushing unique_ptrs to vectors since copying?
-            } else {
-                children.push_back(nullptr);
-            }
-        }
-    }
-
-    std::vector<T> elems;
-    std::vector<std::unique_ptr<Node<T>>> children;
-    Node* parent;
-    // friend btree<T>;
-    // friend BTreeIterator<T>;
 };
 
 #endif
