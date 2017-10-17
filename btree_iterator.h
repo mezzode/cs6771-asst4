@@ -84,32 +84,33 @@ class BTreeIterator {
 
         // prefix dec
         BTreeIterator& operator--() {
-            // if (node->children.size() < indices.top()-1 && // double check this logic
-            //         node->children.at(indices.top()-1) != nullptr) {
-            //     // if there is a child next to thingo, go to it
-            //     node = node->children.at(indices.top()-1).get();
-            //     indices.push(node->elems.size() - 1); // now that i think of it, need to recurse down? i.e. prev elem will be rightmost thing to its left.
-            // } else {
-            //     Node<std::remove_const_t<T>>* originalNode = node;
-            //     auto originalIndices = indices;
-            //     --indices.top();
-            //     // go upwards until at valid elem
-            //     while (indices.top() == node->elem.size()) {
-            //         indices.pop();
-            //         if (node->parent == nullptr) {
-            //             // at end
-            //             endParent = originalNode;
-            //             node = nullptr;
-            //             indices = originalIndices;
-            //             indices.push(0);
-            //             break;
-            //         }
-            //         // go up
-            //         node = node->parent;
-            //     }
-            // }
-            // return *this;
-            // if (indices.top() - 1) // the child with the same index as an elem is the left child
+            if (node == nullptr && endParent != nullptr) {
+                // at end
+                node = endParent;
+                endParent = nullptr;
+            } else if (indices.top() < node->children.size() && // double check this logic
+                    node->children.at(indices.top())) {
+                // if there is a child to the left, go to it
+                // ++indices.top();
+                node = node->children.at(indices.top()).get();
+                indices.push(node->elems.size() - 1); // be careful of index
+                // go to largest elem in the left subtree
+                while (node->children.size() == node->elems.size() + 1 && node->children.at(node->elems.size())) {
+                    // while there is a child to the right of the final elem
+                    node = node->children.at(node->elems.size()).get();
+                    indices.push(node->elems.size() - 1);
+                }
+            } else {
+                // go upwards until at valid elem
+                while (indices.top() == 0) {
+                    indices.pop(); // going to parent from the left child, so need to decrement index
+                    // but if index is 0, need to go from parent to child again
+                    // go up
+                    node = node->parent;
+                }
+                --indices.top();
+            }
+            return *this;
         }
 
         // postfix dec
