@@ -70,15 +70,9 @@ class btree {
          * @param original a const lvalue reference to a B-Tree object
          */
         btree(const btree<T>& original): maxNodeElems{original.maxNodeElems} {
-            // head = original.head;
-            // head = make_unique()
-            // Node* node = original.head.get();
-            // while (node != nullptr) {
-
-            // }
-            // loop version would be finicky since branching, prolly better to do recursive copying
-            head = std::make_unique<Node>(*original.head, nullptr); // make a unique copy of what original.head points to
-        } // TODO:
+            // make a unique copy of what original.head points to
+            head = std::make_unique<Node>(*original.head, nullptr);
+        }
 
         /**
          * Move constructor
@@ -125,7 +119,6 @@ class btree {
          * @param tree a const reference to a B-Tree object
          * @return a reference to os
          */
-        // template<typename T>
         friend std::ostream& operator<<(std::ostream& os, const btree<T>& tree) {
             std::queue<Node*> queue;
             if (tree.head) {
@@ -141,12 +134,11 @@ class btree {
 
                 // print the nodes' contents
                 const std::vector<T> elems = queue.front()->elems;
-                for (size_type i = 0; i < elems.size(); ++i) { // use copy algo instead?
+                for (size_type i = 0; i < elems.size(); ++i) {
                     os << elems.at(i); // print elem
                     if (i < elems.size() - 1 || queue.size() > 1) {
                         // only print space if something else afterward
                         // i.e. if i is not the last elem or there are more things on the queue
-                        // (but what if the other children are empty? but shouldn't be possible for them to be empty?)
                         os << ' ';
                     }
                 }
@@ -155,23 +147,12 @@ class btree {
             return os;
         }
 
-        /**
-         * The following can go here
-         * -- begin()
-         * -- end()
-         * -- rbegin()
-         * -- rend()
-         * -- cbegin()
-         * -- cend()
-         * -- crbegin()
-         * -- crend()
-         */
         iterator begin() {
             return begin_();
         }
 
         const_iterator begin() const {
-            return begin_(); // static_cast?
+            return begin_();
         }
 
         const_iterator end() const {
@@ -275,7 +256,7 @@ class btree {
                 head = std::make_unique<Node>(nullptr);
             }
 
-            Node* node = head.get(); // not sure if need to make it raw ptr instead
+            Node* node = head.get();
             std::stack<size_type> indices;
 
             while (true) {
@@ -326,32 +307,23 @@ class btree {
         ~btree() = default;
 
     private:
-        // template <typename T>
         struct Node {
             Node(Node* parent_): parent{parent_} {};
-        
-            // operator BTreeIterator<const T>() {
-            //     return BTreeIterator<const T>(static_cast<Node<const T>*>(node), indices, static_cast<Node<const T>*>(endParent));
-            // }
-            // operator Node<const T>() {
-            //     return Node<const T>(original, parent);
-            // }
-        
+
             Node(const Node& original, Node* parent_): elems(original.elems), parent{parent_} {
-                for (const auto& child : original.children) { // std::transform?
+                for (const auto& child : original.children) {
                     if (child != nullptr) {
-                        children.push_back(std::make_unique<Node>(*child, this)); // make a unique copy of each child // issues with pushing unique_ptrs to vectors since copying?
+                        // make a unique copy of each child
+                        children.push_back(std::make_unique<Node>(*child, this));
                     } else {
                         children.push_back(nullptr);
                     }
                 }
             }
-        
+
             std::vector<T> elems;
             std::vector<std::unique_ptr<Node>> children;
             Node* parent;
-            // friend btree<T>;
-            // friend BTreeIterator<T>;
         };
 
         std::unique_ptr<Node> head;
@@ -368,44 +340,33 @@ class btree {
                 node = node->children.at(0).get();
                 indices.push(0);
             }
-            indices.push(0); // what if head is null?
+            indices.push(0);
             return iterator(node, indices);
         }
 
         iterator end_() const {
-            // find largest element and create an iterator with endParent set to that
-            // what if head is null
             if (!head) {
                 return iterator(std::stack<size_type>(), nullptr);
             }
 
-            Node* node = head.get(); // not sure if need to make it raw ptr instead
+            Node* node = head.get();
             std::stack<size_type> indices;
-            // while (!node->children.empty()) {
-            //     auto i = node->elems.size();
-            //     if (i < node->children.size()) {
-            //         node = node->children.at(i);
-            //         indices.push(i);
-            //     } else {
 
-            //     }
-
-            // }
-            // issue since end of children may not right of end of elems
             // get the size of elems; if there is a child at that index (i.e. something larger than the largest elem), go to that. otherwise take the largest elem.
-            while (!node->children.empty() && node->elems.size() == node->children.size() - 1) { // TODO: check logic; what happens if head is null
+            while (!node->children.empty() && node->elems.size() == node->children.size() - 1) {
                 indices.push(node->elems.size());
                 node = node->children.at(node->elems.size()).get();
             }
             indices.push(node->elems.size() - 1);
+            // does not add extra index to indices
             return iterator(indices, node);
         }
 
         iterator find_(const T& elem) const {
-            Node* node = head.get(); // not sure if need to make it raw ptr instead
+            Node* node = head.get();
             std::stack<size_type> indices;
             size_type i = 0;
-            while (node != nullptr && i <= node->elems.size()) { // TODO: check logic
+            while (node != nullptr && i <= node->elems.size()) {
                 if (i == node->elems.size() || elem < node->elems.at(i) ) { // if at end of elems look at final child or if elem is smaller then should look at child to left
                     // look in that child
                     if (i >= node->children.size()) {
@@ -426,8 +387,6 @@ class btree {
             return end_();
         }
 
-        // template <typename T_>
-        // friend void swap(btree<T_>)
         friend void swap(btree<T>& a, btree<T>& b) {
             using std::swap;
             swap(a.head, b.head);

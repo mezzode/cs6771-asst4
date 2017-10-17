@@ -4,14 +4,6 @@
 #include <iterator>
 #include <stack>
 
-/**
- * You MUST implement the btree iterators as (an) external class(es) in this file.
- * Failure to do so will result in a total mark of 0 for this deliverable.
- **/
-
-// iterator related interface stuff here; would be nice if you called your
-// iterator class btree_iterator (and possibly const_btree_iterator)
-
 template <typename T> class btree;
 template <typename T> class Node;
 
@@ -43,7 +35,7 @@ class BTreeIterator {
             // else take the elem to the right (i.e. i+1)
             // if no elem or child to the right, take the elem to the right in the parent
             // if no elem to the right in the parent go to the next parent. continue as necessary
-            if (indices.top() + 1 < node->children.size() && // double check this logic
+            if (indices.top() + 1 < node->children.size() &&
                     node->children.at(indices.top() + 1)) {
                 // if there is a child to the right, go to it
                 ++indices.top();
@@ -66,7 +58,7 @@ class BTreeIterator {
                         endParent = originalNode;
                         node = nullptr;
                         indices = originalIndices;
-                        // indices.push(0); // should end() have a trailing 0 index on the stack? ensure consistent with --
+                        // note does not add extra index to indices
                         break;
                     }
                     // go up
@@ -89,10 +81,9 @@ class BTreeIterator {
                 // at end
                 node = endParent;
                 endParent = nullptr;
-            } else if (indices.top() < node->children.size() && // double check this logic
+            } else if (indices.top() < node->children.size() &&
                     node->children.at(indices.top())) {
                 // if there is a child to the left, go to it
-                // ++indices.top();
                 node = node->children.at(indices.top()).get();
                 indices.push(node->elems.size() - 1); // be careful of index
                 // go to largest elem in the left subtree
@@ -104,9 +95,8 @@ class BTreeIterator {
             } else {
                 // go upwards until at valid elem
                 while (indices.top() == 0) {
-                    indices.pop(); // going to parent from the left child, so need to decrement index
-                    // but if index is 0, need to go from parent to child again
-                    // go up
+                    indices.pop();
+                    // if index is 0, need to go from parent to child again since cant decrement
                     node = node->parent;
                 }
                 --indices.top();
@@ -131,7 +121,6 @@ class BTreeIterator {
 
         // casting iterators to const_iterators
         operator BTreeIterator<const T>() const {
-            // return BTreeIterator<const T>(static_cast<Node<const T>*>(node), indices, static_cast<Node<const T>*>(endParent));
             return BTreeIterator<const T>(node, indices, endParent);
         }
 
@@ -140,8 +129,6 @@ class BTreeIterator {
         BTreeIterator(std::stack<size_type> indices_, Node* endParent_): node{nullptr}, indices{indices_}, endParent{endParent_} { }
 
         BTreeIterator(Node* node_, std::stack<size_type> indices_, Node* endParent_): node{node_}, indices{indices_}, endParent{endParent_} { }
-
-        // BTreeIterator(const Node* node_, std::stack<size_type> indices_, const Node* endParent_): node{node_}, indices{indices_}, endParent{endParent_} { }
 
     private:
         Node* node;
