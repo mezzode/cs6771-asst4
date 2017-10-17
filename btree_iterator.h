@@ -65,7 +65,7 @@ class BTreeIterator {
                         endParent = originalNode;
                         node = nullptr;
                         indices = originalIndices;
-                        indices.push(0);
+                        // indices.push(0); // should end() have a trailing 0 index on the stack? ensure consistent with --
                         break;
                     }
                     // go up
