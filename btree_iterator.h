@@ -50,7 +50,7 @@ class BTreeIterator {
                 indices.push(0);
                 // go to smallest elem in the right subtree
                 while (!node->children.empty() && node->children.at(0)) {
-                    node = node->children.at(0);
+                    node = node->children.at(0).get();
                     indices.push(0);
                 }
             } else {
@@ -58,7 +58,7 @@ class BTreeIterator {
                 auto originalIndices = indices;
                 ++indices.top();
                 // go upwards until at valid elem
-                while (indices.top() == node->elem.size()) {
+                while (indices.top() == node->elems.size()) {
                     indices.pop();
                     if (node->parent == nullptr) {
                         // at end
