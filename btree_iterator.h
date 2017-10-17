@@ -30,7 +30,7 @@ class BTreeIterator {
         reference operator*() const {
             return node->elems[indices.top()];
         }
-        
+
         pointer operator->() const {
             return &(operator*());
         }
@@ -126,7 +126,7 @@ class BTreeIterator {
 
         bool operator!=(const BTreeIterator& other) const {
             return !operator==(other);
-        } 
+        }
 
         // casting iterators to const_iterators
         operator BTreeIterator<const T>() const {
@@ -135,7 +135,7 @@ class BTreeIterator {
         }
 
         BTreeIterator(Node<std::remove_const_t<T>>* node_, std::stack<size_type> indices_): BTreeIterator(node_, indices_, nullptr) { }
-        
+
         BTreeIterator(std::stack<size_type> indices_, Node<std::remove_const_t<T>>* endParent_): node{nullptr}, indices{indices_}, endParent{endParent_} { }
 
         BTreeIterator(Node<std::remove_const_t<T>>* node_, std::stack<size_type> indices_, Node<std::remove_const_t<T>>* endParent_): node{node_}, indices{indices_}, endParent{endParent_} { }
@@ -148,14 +148,14 @@ class BTreeIterator {
         Node<std::remove_const_t<T>>* endParent;
 };
 
-template <typename T> 
-bool operator==(const BTreeIterator<T>& a, const BTreeIterator<const T>& b) { 
+template <typename T>
+bool operator==(const BTreeIterator<T>& a, const BTreeIterator<const T>& b) {
     return static_cast<BTreeIterator<const T>>(a) == b;
 }
 
-template <typename T> 
-bool operator!=(const BTreeIterator<T>& a, const BTreeIterator<const T>& b) { 
+template <typename T>
+bool operator!=(const BTreeIterator<T>& a, const BTreeIterator<const T>& b) {
     return !(a == b);
-} 
+}
 
 #endif

@@ -88,7 +88,9 @@ class btree {
          *
          * @param original an rvalue reference to a B-Tree object
          */
-        btree(btree<T>&& original) = default;
+        btree(btree<T>&& original): maxNodeElems{original.maxNodeElems} {
+            swap(original, *this);
+        }
 
         /**
          * Copy assignment
@@ -110,7 +112,11 @@ class btree {
          *
          * @param rhs a const reference to a B-Tree object
          */
-        btree<T>& operator=(btree<T>&& rhs) = default;
+        btree<T>& operator=(btree<T>&& rhs) {
+            maxNodeElems = rhs.maxNodeElems;
+            swap(rhs, *this);
+            return *this;
+        }
 
         /**
          * Puts a breadth-first traversal of the B-Tree onto the output
@@ -124,7 +130,9 @@ class btree {
         // template<typename T>
         friend std::ostream& operator<<(std::ostream& os, const btree<T>& tree) {
             std::queue<Node<T>*> queue;
-            queue.push(tree.head.get());
+            if (tree.head) {
+                queue.push(tree.head.get());
+            }
             while (!queue.empty()) {
                 // add nodes' children to queue
                 for (auto& child : queue.front()->children) {
@@ -132,7 +140,7 @@ class btree {
                         queue.push(child.get());
                     }
                 }
-        
+
                 // print the nodes' contents
                 const std::vector<T> elems = queue.front()->elems;
                 for (size_type i = 0; i < elems.size(); ++i) { // use copy algo instead?
@@ -337,7 +345,7 @@ class btree {
             indices.push(0); // what if head is null?
             return iterator(node, indices);
         }
-        
+
         iterator end_() const {
             // find largest element and create an iterator with endParent set to that
             // what if head is null
@@ -355,13 +363,13 @@ class btree {
             //     } else {
 
             //     }
-                
+
             // }
             // issue since end of children may not right of end of elems
             // get the size of elems; if there is a child at that index (i.e. something larger than the largest elem), go to that. otherwise take the largest elem.
             while (!node->children.empty() && node->elems.size() == node->children.size() - 1) { // TODO: check logic; what happens if head is null
-                node = node->children.at(node->elems.size()).get();
                 indices.push(node->elems.size());
+                node = node->children.at(node->elems.size()).get();
             }
             indices.push(node->elems.size() - 1);
             return iterator(indices, node);
@@ -384,7 +392,7 @@ class btree {
                 } else if (node->elems.at(i) == elem) {
                     // found
                     indices.push(i);
-                    return iterator(node, indices);    
+                    return iterator(node, indices);
                 } else {
                     ++i;
                 }
