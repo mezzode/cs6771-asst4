@@ -121,7 +121,7 @@ class BTreeIterator {
         }
 
         bool operator==(const BTreeIterator& other) const {
-            return node == other.node && indices == other.indices;
+            return node == other.node && indices == other.indices && endParent == other.endParent;
         }
 
         bool operator!=(const BTreeIterator& other) const {
