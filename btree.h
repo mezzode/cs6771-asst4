@@ -123,10 +123,11 @@ class btree {
          */
         // template<typename T>
         friend std::ostream& operator<<(std::ostream& os, const btree<T>& tree) {
-            std::queue<Node<T>*> queue = {tree.head.get()};
+            std::queue<Node<T>*> queue;
+            queue.push(tree.head.get());
             while (!queue.empty()) {
                 // add nodes' children to queue
-                for (const Node<T>& child : queue.front()->children) {
+                for (auto& child : queue.front()->children) {
                     if (child) { // child.get != nullptr
                         queue.push(child.get());
                     }
@@ -134,7 +135,7 @@ class btree {
         
                 // print the nodes' contents
                 const std::vector<T> elems = queue.front()->elems;
-                for (size_type i = 0; i < elems.size(); ++i) {
+                for (size_type i = 0; i < elems.size(); ++i) { // use copy algo instead?
                     os << elems.at(i); // print elem
                     if (i < elems.size() - 1 || queue.size() > 1) {
                         // only print space if something else afterward
@@ -370,8 +371,8 @@ class btree {
             Node<T>* node = head.get(); // not sure if need to make it raw ptr instead
             std::stack<size_type> indices;
             size_type i = 0;
-            while (node != nullptr && i < node->elems.size()) { // TODO: check logic
-                if (elem < node->elems.at(i) || i == node->elems.size()) {
+            while (node != nullptr && i <= node->elems.size()) { // TODO: check logic
+                if (i == node->elems.size() || elem < node->elems.at(i) ) { // if at end of elems look at final child or if elem is smaller then should look at child to left
                     // look in that child
                     if (i >= node->children.size()) {
                         // no child
