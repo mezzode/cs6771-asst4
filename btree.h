@@ -34,11 +34,9 @@ class btree {
         using const_iterator = BTreeIterator<const T>; // does this actually work?
         using reverse_iterator = std::reverse_iterator<iterator>;
         using const_reverse_iterator = std::reverse_iterator<const_iterator>;
-        // friend class BTreeIterator<T>; // or <T*>?
-        // friend class BTreeIterator<const T>;
-        template <typename U> friend class BTreeIterator;
+        friend iterator;
+        friend const_iterator;
 
-        // using size_type = typename std::vector<T>::size_type; // doesnt work for vector<const T> since that would be meaningless
         using size_type = unsigned int;
 
         /**
